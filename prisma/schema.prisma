@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  imageUrl    String?
+  category    String
+  stock       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Reseller {
+  id                String   @id @default(cuid())
+  name              String
+  email             String?  @unique
+  phone             String?
+  code              String   @unique
+  passwordHash      String?
+  discountPercent   Float    @default(10)
+  commissionPercent Float    @default(15)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  orders Order[]
+}
+
+model SiteSettings {
+  id             String   @id @default("singleton")
+  storeName      String   @default("Mi Catálogo")
+  primaryColor   String   @default("#db2777")
+  bannerTitle    String   @default("Moda para vos y para revender")
+  bannerSubtitle String   @default("Elegí tus prendas favoritas. ¿Sos revendedora? Ingresá tu código en el checkout y obtené tu descuento.")
+  bannerImageUrl String?
+  whatsappNumber String   @default("")
+  updatedAt      DateTime @updatedAt
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  customerName     String
+  customerPhone    String
+  customerAddress  String
+  notes            String?
+  subtotal         Float
+  discountAmount   Float    @default(0)
+  total            Float
+  commissionAmount Float    @default(0)
+  resellerId       String?
+  reseller         Reseller? @relation(fields: [resellerId], references: [id])
+  status           String   @default("PENDIENTE")
+  createdAt        DateTime @default(now())
+
+  paymentMethod    String   @default("WHATSAPP") // WHATSAPP | MERCADOPAGO
+  paymentStatus    String   @default("PENDIENTE") // PENDIENTE | APROBADO | RECHAZADO
+  mpPreferenceId   String?
+  mpPaymentId      String?
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  productName String
+  price       Float
+  quantity    Int
+}
+
+model CanchaConfig {
+  id              String   @id @default("singleton")
+  courtName       String   @default("Cancha de Fútbol 7")
+  slotDurationMin Int      @default(60)
+  openTime        String   @default("09:00")
+  closeTime       String   @default("23:00")
+  closedWeekdays  String   @default("")
+  pricePerSlot    Float    @default(20000)
+  depositAmount   Float    @default(5000)
+  whatsappNumber  String   @default("")
+  callmebotApiKey String   @default("")
+  updatedAt       DateTime @updatedAt
+}
+
+model Booking {
+  id             String   @id @default(cuid())
+  date           String // "YYYY-MM-DD"
+  startTime      String // "HH:mm"
+  endTime        String // "HH:mm"
+  customerName   String
+  customerPhone  String
+  price          Float
+  depositAmount  Float
+  status         String   @default("PENDIENTE") // PENDIENTE | CONFIRMADO | CANCELADO
+  paymentStatus  String   @default("PENDIENTE") // PENDIENTE | APROBADO | RECHAZADO
+  mpPreferenceId String?
+  mpPaymentId    String?
+  createdAt      DateTime @default(now())
+
+  @@unique([date, startTime])
+}
